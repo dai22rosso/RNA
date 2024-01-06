@@ -31,54 +31,63 @@ def separate_array_by_index(arr, index_array):
 
 def find_k(M):
     gap_list = []
-    for k in range(2, 8):
-        D = []
-        W = []
-        kmeans = KMeans(n_clusters = k, random_state=0).fit(M)
+    for k in range(2, 6):
+        D = np.zeros(k)
+        W = np.zeros(k)
+        kmeans = KMeans(n_clusters = k, n_init='auto', random_state=0).fit(M)
         index_array = kmeans.labels_
-        separated_arrays = separate_array_by_index(M_copy, index_array)
+        separated_arrays = separate_array_by_index(M, index_array)
         for r in range(len(separated_arrays)):
-            D[r] = convert_to_D(separated_arrays[r], method='value')
+            D[r] = convert_to_D(np.array(separated_arrays[r]), method='value')
             W[r] = D[r] / (2 * len(separated_arrays[r]))
         W_sum = np.sum(W)
         W_sum_log = np.log(W_sum)
 
         # Reference distribution
-        ref_Wk = []
+        W_ref_log_list = []
         for b in range(10):
+            D_ref = np.zeros(k)
+            W_ref = np.zeros(k)
             # Create reference dataset
             M_ref = np.random.random_sample(M.shape)
-            kmeans = KMeans(n_clusters=k, random_state=b).fit(M_ref)
+            kmeans = KMeans(n_clusters = k, n_init='auto', random_state=b).fit(M_ref)
             index_array = kmeans.labels_
             separated_arrays = separate_array_by_index(M_ref, index_array)
-            Wk_ref = np.sum([convert_to_D(cluster, method='value') / (2 * len(cluster)) 
-                             for cluster in separated_arrays])
-            ref_Wk.append(np.log(Wk_ref))
-        W_ref_log = np.mean(ref_Wk)
+
+            for r in range(len(separated_arrays)):
+                D_ref[r] = convert_to_D(np.array(separated_arrays[r]), method='value')
+                W_ref[r] = D[r] / (2 * len(separated_arrays[r]))
+
+            W_sum_ref = np.sum(W_ref)
+            W_ref_log_list.append(np.log(W_sum_ref))
+
+        W_ref_log = np.mean(W_ref_log_list)
 
         # Calculate the gap statistic
-        gap = W_ref_log - W_sum_log
+        gap = abs(W_ref_log - W_sum_log)
         gap_list.append(gap)
 
     best_k = 0
     for i in range(1, len(gap_list)):
-        if gap_list[i] > gap_list[k]:
+        if gap_list[i] > gap_list[best_k]:
             best_k = i
+        if gap_list[i] == None:
+            raise ValueError
     print(best_k + 2)   
 
 
 
 #Test code
 matrix = np.array([
-    [1, 2, 3],
-    [4, 5, 6],
+    [1, 2, 2],
+    [4, 5, 7],
     [7, 8, 9],
     [1, 2, 3],
-    [4, 5, 6],
+    [4, 3, 6],
     [7, 8, 9],
-    [1, 2, 3],
+    [1, 1, 3],
     [4, 5, 6],
-    [7, 8, 9]
+    [7, 9, 9]
 ])
 
 find_k(matrix)
